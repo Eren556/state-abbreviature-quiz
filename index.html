@@ -1,0 +1,201 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>State Abbreviation Quiz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 50px auto;
+      text-align: center;
+    }
+    .question {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .options button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .scoreboard {
+      margin: 20px 0;
+      font-size: 18px;
+    }
+    .timer {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #444;
+    }
+    select {
+      margin-bottom: 20px;
+      font-size: 16px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🇺🇸 Викторина по штатам США</h1>
+
+  <label for="mode">Выбери режим:</label>
+  <select id="mode">
+    <option value="abbrToName">Аббревиатура → Название</option>
+    <option value="nameToAbbr">Название → Аббревиатура</option>
+  </select>
+
+  <button onclick="startGame()">Начать игру</button>
+
+  <div class="scoreboard" style="display:none;">
+    Счет: <span id="score">0</span> |
+    Правильные: <span id="correct">0</span> |
+    Ошибки: <span id="incorrect">0</span>
+  </div>
+
+  <div class="timer" style="display:none;">Осталось времени: <span id="timer">10</span> сек</div>
+
+  <div class="question" id="question"></div>
+  <div class="options" id="options"></div>
+  <div class="result" id="result"></div>
+  <button onclick="nextQuestion()" id="nextBtn" style="display:none;">Следующий вопрос</button>
+
+  <script>
+    const questions = [ { abbr: "AL", name: "Alabama" }, { abbr: "AK", name: "Alaska" }, { abbr: "AZ", name: "Arizona" },
+      { abbr: "AR", name: "Arkansas" }, { abbr: "CA", name: "California" }, { abbr: "CO", name: "Colorado" },
+      { abbr: "CT", name: "Connecticut" }, { abbr: "DE", name: "Delaware" }, { abbr: "FL", name: "Florida" },
+      { abbr: "GA", name: "Georgia" }, { abbr: "HI", name: "Hawaii" }, { abbr: "ID", name: "Idaho" },
+      { abbr: "IL", name: "Illinois" }, { abbr: "IN", name: "Indiana" }, { abbr: "IA", name: "Iowa" },
+      { abbr: "KS", name: "Kansas" }, { abbr: "KY", name: "Kentucky" }, { abbr: "LA", name: "Louisiana" },
+      { abbr: "ME", name: "Maine" }, { abbr: "MD", name: "Maryland" }, { abbr: "MA", name: "Massachusetts" },
+      { abbr: "MI", name: "Michigan" }, { abbr: "MN", name: "Minnesota" }, { abbr: "MS", name: "Mississippi" },
+      { abbr: "MO", name: "Missouri" }, { abbr: "MT", name: "Montana" }, { abbr: "NE", name: "Nebraska" },
+      { abbr: "NV", name: "Nevada" }, { abbr: "NH", name: "New Hampshire" }, { abbr: "NJ", name: "New Jersey" },
+      { abbr: "NM", name: "New Mexico" }, { abbr: "NY", name: "New York" }, { abbr: "NC", name: "North Carolina" },
+      { abbr: "ND", name: "North Dakota" }, { abbr: "OH", name: "Ohio" }, { abbr: "OK", name: "Oklahoma" },
+      { abbr: "OR", name: "Oregon" }, { abbr: "PA", name: "Pennsylvania" }, { abbr: "RI", name: "Rhode Island" },
+      { abbr: "SC", name: "South Carolina" }, { abbr: "SD", name: "South Dakota" }, { abbr: "TN", name: "Tennessee" },
+      { abbr: "TX", name: "Texas" }, { abbr: "UT", name: "Utah" }, { abbr: "VT", name: "Vermont" },
+      { abbr: "VA", name: "Virginia" }, { abbr: "WA", name: "Washington" }, { abbr: "WV", name: "West Virginia" },
+      { abbr: "WI", name: "Wisconsin" }, { abbr: "WY", name: "Wyoming" } ];
+
+    let current = {};
+    let score = 0, correct = 0, incorrect = 0, timer, timeLeft = 10;
+
+    function shuffle(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timeLeft = 10;
+      document.getElementById("timer").textContent = timeLeft;
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("timer").textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          showResult(false, true);
+        }
+      }, 1000);
+    }
+
+    function updateScoreboard() {
+      document.getElementById("score").textContent = score;
+      document.getElementById("correct").textContent = correct;
+      document.getElementById("incorrect").textContent = incorrect;
+    }
+
+    function getOptions(correctState, mode) {
+      const pool = questions.filter(q => q !== correctState);
+      let options = [];
+
+      if (mode === "abbrToName") {
+        let similar = pool.filter(q => q.name[0] === correctState.name[0]);
+        similar = shuffle(similar).slice(0, 3);
+        if (similar.length < 3) {
+          const fill = shuffle(pool.filter(q => !similar.includes(q))).slice(0, 3 - similar.length);
+          similar = similar.concat(fill);
+        }
+        options = [correctState.name, ...similar.map(q => q.name)];
+      } else {
+        let similar = pool.filter(q => q.abbr[0] === correctState.abbr[0]);
+        similar = shuffle(similar).slice(0, 3);
+        if (similar.length < 3) {
+          const fill = shuffle(pool.filter(q => !similar.includes(q))).slice(0, 3 - similar.length);
+          similar = similar.concat(fill);
+        }
+        options = [correctState.abbr, ...similar.map(q => q.abbr)];
+      }
+
+      return shuffle(options);
+    }
+
+    function nextQuestion() {
+      clearInterval(timer);
+      document.getElementById("result").textContent = "";
+      document.getElementById("nextBtn").style.display = "none";
+
+      const mode = document.getElementById("mode").value;
+      current = questions[Math.floor(Math.random() * questions.length)];
+
+      if (mode === "abbrToName") {
+        document.getElementById("question").textContent = `Что означает аббревиатура "${current.abbr}"?`;
+      } else {
+        document.getElementById("question").textContent = `Какая аббревиатура у штата "${current.name}"?`;
+      }
+
+      const options = getOptions(current, mode);
+      const optionsContainer = document.getElementById("options");
+      optionsContainer.innerHTML = "";
+
+      options.forEach(option => {
+        const btn = document.createElement("button");
+        btn.textContent = option;
+        btn.onclick = () => {
+          clearInterval(timer);
+          checkAnswer(option, mode);
+        };
+        optionsContainer.appendChild(btn);
+      });
+
+      startTimer();
+    }
+
+    function checkAnswer(selected, mode) {
+      let isCorrect = mode === "abbrToName" ? selected === current.name : selected === current.abbr;
+      showResult(isCorrect, false);
+    }
+
+    function showResult(isCorrect, isTimeout) {
+      const result = document.getElementById("result");
+      if (isCorrect) {
+        score++;
+        correct++;
+        result.textContent = "✅ Верно!";
+        result.style.color = "green";
+      } else {
+        incorrect++;
+        result.textContent = isTimeout
+          ? `⌛ Время вышло! Правильный ответ: ${document.getElementById("mode").value === "abbrToName" ? current.name : current.abbr}`
+          : `❌ Неверно. Правильный ответ: ${document.getElementById("mode").value === "abbrToName" ? current.name : current.abbr}`;
+        result.style.color = "red";
+      }
+      updateScoreboard();
+      document.getElementById("nextBtn").style.display = "inline-block";
+    }
+
+    function startGame() {
+      document.querySelector(".scoreboard").style.display = "block";
+      document.querySelector(".timer").style.display = "block";
+      document.getElementById("nextBtn").style.display = "inline-block";
+      nextQuestion();
+    }
+  </script>
+</body>
+</html>
